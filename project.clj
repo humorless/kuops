@@ -3,7 +3,8 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
 
-  :dependencies [[ch.qos.logback/logback-classic "1.2.7"]
+  :dependencies [[buddy/buddy-core "1.10.1"]
+                 [ch.qos.logback/logback-classic "1.2.7"]
                  [cljs-ajax "0.8.4"]
                  [clojure.java-time "0.3.3"]
                  [com.cognitect/transit-clj "1.0.324"]
