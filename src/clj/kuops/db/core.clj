@@ -1,13 +1,14 @@
 (ns kuops.db.core
   (:require
-    [cheshire.core :refer [generate-string parse-string]]
-    [next.jdbc.date-time]
-    [next.jdbc.prepare]
-    [next.jdbc.result-set]
-    [clojure.tools.logging :as log]
-    [conman.core :as conman]
-    [kuops.config :refer [env]]
-    [mount.core :refer [defstate]])
+   [java-time :as java-time]
+   [cheshire.core :refer [generate-string parse-string]]
+   [next.jdbc.date-time]
+   [next.jdbc.prepare]
+   [next.jdbc.result-set]
+   [clojure.tools.logging :as log]
+   [conman.core :as conman]
+   [kuops.config :refer [env]]
+   [mount.core :refer [defstate]])
   (:import (org.postgresql.util PGobject)))
 
 (defstate ^:dynamic *db*
@@ -74,3 +75,8 @@
                            (apply str (rest type-name)))]
         (.setObject stmt idx (.createArrayOf conn elem-type (to-array v)))
         (.setObject stmt idx (clj->jsonb-pgobj v))))))
+
+(comment
+  (def d (java-time/local-date 1985 1 1))
+  (find-student {:name "Jack" :birthday d})
+  (get-student {:id 1}))

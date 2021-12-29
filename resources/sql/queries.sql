@@ -1,3 +1,14 @@
+-- :name find-student :? :1
+-- :doc retrieves a student kuops_unique_id given the name and birthday
+SELECT kuops_unique_id FROM students
+WHERE student_name = :name AND student_birthday = :birthday
+
+
+-- :name get-student :? :1
+-- :doc retrieves all the student fields given the id
+SELECT * FROM students
+WHERE id = :id
+
 -- :name create-user! :! :n
 -- :doc creates a new user record
 INSERT INTO users
