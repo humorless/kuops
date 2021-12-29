@@ -79,4 +79,9 @@
 (comment
   (def d (java-time/local-date 1985 1 1))
   (find-student {:name "Jack" :birthday d})
-  (get-student {:id 1}))
+  (get-student {:id 1})
+  (create-student! {:student-name "John"
+                    :birthday d
+                    :parent-name "Jesus"
+                    :kuops-id "rrr"})
+  (get-student {:id 3}))
