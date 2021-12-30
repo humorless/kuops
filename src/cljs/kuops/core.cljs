@@ -97,8 +97,8 @@
      [:div#nav-menu.navbar-menu
       {:class (when @expanded? :is-active)}
       [:div.navbar-start
-       [nav-link "#/query" "Query" :query]
-       [nav-link "#/register" "Register" :register]]]]))
+       [nav-link "?#/query" "Query" :query]
+       [nav-link "?#/register" "Register" :register]]]]))
 
 (defn query-page []
   (let [{:keys [name birthday telephone classroom-id result]} @state]
@@ -179,9 +179,11 @@
       [:div
        [:pre result]]]]))
 
-(def pages
-  {:query #'query-page
-   :register #'register-page})
+(defn pages [k]
+  (case k
+    :query #'query-page
+    :register #'register-page
+    #'query-page))
 
 (defn page []
   [(pages (:page @session))])
@@ -220,7 +222,5 @@
   (rdom/render [#'page] (.getElementById js/document "app")))
 
 (defn init! []
-  (ajax/load-interceptors!)
-  (fetch-docs!)
   (hook-browser-navigation!)
   (mount-components))
