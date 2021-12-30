@@ -1,17 +1,60 @@
 (ns kuops.core
   (:require
-    [reagent.core :as r]
-    [reagent.dom :as rdom]
-    [goog.events :as events]
-    [goog.history.EventType :as HistoryEventType]
-    [markdown.core :refer [md->html]]
-    [kuops.ajax :as ajax]
-    [ajax.core :refer [GET POST]]
-    [reitit.core :as reitit]
-    [clojure.string :as string])
+   [kitchen-async.promise :as p]
+   [lambdaisland.fetch :as fetch]
+   [reagent.core :as r]
+   [reagent.dom :as rdom]
+   [goog.events :as events]
+   [goog.history.EventType :as HistoryEventType]
+   [markdown.core :refer [md->html]]
+   [kuops.ajax :as ajax]
+   [ajax.core :refer [GET POST]]
+   [reitit.core :as reitit]
+   [clojure.string :as string])
   (:import goog.History))
 
-(defonce session (r/atom {:page :home}))
+;;;; Application
+(defonce state (r/atom {:name nil
+                        :birthday nil
+                        :telephone nil
+                        :classroom-id nil
+                        :result nil}))
+(comment
+  (defn handle-form-submit [e]
+    (.. e preventDefault)
+    (let [chk (-> js/document (.getElementById "form-id") (.checkValidity))]
+      (println "form validation result: " chk)
+      (-> js/document (.getElementById "form-id") (.reportValidity))
+      (when chk))))
+
+(defn handle-form-clear [e]
+  (swap! state assoc :result nil))
+
+(defn handle-form-submit [e]
+  (let [{:keys [name birthday telephone]} @state
+        body {:name name
+              :birthday birthday
+              :telephone telephone}
+        opts {:body body
+              :method :post
+              :content-type :json
+              :accept :json}]
+    (tap> [:handle-form-submit opts])
+    (p/try
+      (p/let [resp (fetch/request "/api/query-id" opts)
+              body (js->clj (:body resp) :keywordize-keys true)
+              result (:result body)]
+        (tap> [:handle-form-submit body])
+        (if (some? result)
+          (swap! state assoc :result result)
+          (swap! state assoc :result "不存在")))
+
+      (p/catch :default e
+        (prn {:url "/api/query-id" :opts opts :e e})))))
+;;;; Plumbing code
+
+
+(defonce session (r/atom {:page :query}))
 
 (defn nav-link [uri title page]
   [:a.navbar-item
@@ -19,35 +62,65 @@
     :class (when (= page (:page @session)) "is-active")}
    title])
 
-(defn navbar [] 
+(defn navbar []
   (r/with-let [expanded? (r/atom false)]
     [:nav.navbar.is-info>div.container
      [:div.navbar-brand
-      [:a.navbar-item {:href "/" :style {:font-weight :bold}} "kuops"]
+      [:a.navbar-item {:href "/" :style {:font-weight :bold}} "Student System"]
       [:span.navbar-burger.burger
        {:data-target :nav-menu
         :on-click #(swap! expanded? not)
         :class (when @expanded? :is-active)}
-       [:span][:span][:span]]]
+       [:span] [:span] [:span]]]
      [:div#nav-menu.navbar-menu
       {:class (when @expanded? :is-active)}
       [:div.navbar-start
-       [nav-link "#/" "Home" :home]
-       [nav-link "#/about" "About" :about]]]]))
+       [nav-link "#/query" "Query" :query]
+       [nav-link "#/register" "Register" :register]]]]))
 
-(defn about-page []
+(defn query-page []
+  (let [{:keys [name birthday telephone classroom-id result]} @state]
+    [:section.section>div.container>div.content
+     [:form {:id "form-id"}
+      [:div
+       [:label "學生姓名"] [:input {:type "text"
+                                :placeholder "王大明"
+                                :value name
+                                :on-change (fn [e]
+                                             (let [d (-> e .-target .-value)]
+                                               (swap! state assoc :name d)))}]]
+      [:div
+       [:label "學生生日"] [:input {:type "date"
+                                :placeholder "2022-01-01"
+                                :value birthday
+                                :on-change (fn [e]
+                                             (let [d (-> e .-target .-value)]
+                                               (swap! state assoc :birthday d)))}]]
+      [:div
+       [:label "註冊電話"] [:input {:type "tel"
+                                :placeholder "0800-092-000"
+                                :value telephone
+                                :on-change (fn [e]
+                                             (let [d (-> e .-target .-value)]
+                                               (swap! state assoc :telephone d)))}]]
+      [:div
+       [:input {:type "submit"
+                :value "查詢"
+                :on-click handle-form-submit}]]
+      [:div
+       [:input {:type "submit"
+                :value "清除結果"
+                :on-click handle-form-clear}]]
+      [:div
+       [:pre result]]]]))
+
+(defn register-page []
   [:section.section>div.container>div.content
-   [:img {:src "/img/warning_clojure.png"}]])
-
-
-(defn home-page []
-  [:section.section>div.container>div.content
-   (when-let [docs (:docs @session)]
-     [:div {:dangerouslySetInnerHTML {:__html (md->html docs)}}])])
+   "register"])
 
 (def pages
-  {:home #'home-page
-   :about #'about-page})
+  {:query #'query-page
+   :register #'register-page})
 
 (defn page []
   [(pages (:page @session))])
@@ -57,8 +130,8 @@
 
 (def router
   (reitit/router
-    [["/" :home]
-     ["/about" :about]]))
+   [["/query" :query]
+    ["/register" :register]]))
 
 (defn match-route [uri]
   (->> (or (not-empty (string/replace uri #"^.*#" "")) "/")
@@ -71,9 +144,9 @@
 (defn hook-browser-navigation! []
   (doto (History.)
     (events/listen
-      HistoryEventType/NAVIGATE
-      (fn [^js/Event.token event]
-        (swap! session assoc :page (match-route (.-token event)))))
+     HistoryEventType/NAVIGATE
+     (fn [^js/Event.token event]
+       (swap! session assoc :page (match-route (.-token event)))))
     (.setEnabled true)))
 
 ;; -------------------------
