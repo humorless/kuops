@@ -8,6 +8,8 @@
     [reitit.ring.middleware.multipart :as multipart]
     [reitit.ring.middleware.parameters :as parameters]
     [kuops.middleware.formats :as formats]
+    [kuops.db.core :as db]
+    [kuops.domain.handler :as domain]
     [ring.util.http-response :refer :all]
     [clojure.java.io :as io]))
 
@@ -46,6 +48,18 @@
              {:url "/api/swagger.json"
               :config {:validator-url nil}})}]]
 
+   ["/query-id"
+    {:post {:summary "use name, birthday, telephone to query student id"
+            :parameters {:body {:name string?, :birthday inst? :telephone string?}}
+            :handler (fn [{{{:keys [name birthday telephone] :as input} :body} :parameters}]
+                        {:status 200
+                         :body {:result (domain/find-student input)}})}}]
+   ["/register"
+    {:post {:summary "use name, birthday, telephone to query student id"
+            :parameters {:body {:name string?, :birthday inst? :telephone string? :classroom-id string?}}
+            :handler (fn [{{{:keys [name birthday telephone classroom-id] :as input} :body} :parameters}]
+                        {:status 200
+                         :body {:result (domain/register input)}})}}]
    ["/ping"
     {:get (constantly (ok {:message "pong"}))}]
    

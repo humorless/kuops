@@ -78,10 +78,11 @@
 
 (comment
   (def d (java-time/local-date 1985 1 1))
-  (find-student {:name "Jack" :birthday d})
+  (find-student {:name "Jack" :birthday d :telephone "1234567"})
   (get-student {:id 1})
-  (create-student! {:student-name "John"
+  (create-student! {:name "John"
                     :birthday d
-                    :parent-name "Jesus"
-                    :kuops-id "rrr"})
-  (get-student {:id 3}))
+                    :telephone "0988777777"
+                    :classroom-id "rrr"})
+  (get-student {:id 3})
+  (get-student-serial))

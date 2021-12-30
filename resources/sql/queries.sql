@@ -1,8 +1,7 @@
--- :name find-student :? :*
+-- :name find-student :? :1
 -- :doc retrieves a student kuops_unique_id given the name and birthday
-SELECT kuops_id FROM students
-WHERE student_name = :name AND student_birthday = :birthday
-
+SELECT CONCAT(classroom_id, '_',  id) FROM students
+WHERE student_name = :name AND student_birthday = :birthday AND telephone = :telephone
 
 -- :name get-student :? :1
 -- :doc retrieves all the student fields given the id
@@ -12,8 +11,12 @@ WHERE id = :id
 -- :name create-student! :! :n
 -- :doc creates a new student record
 INSERT INTO students
-(id, student_name, student_birthday, parent_name, kuops_id)
-VALUES (DEFAULT, :student-name, :birthday, :parent-name, :kuops-id)
+(id, student_name, student_birthday, telephone, classroom_id)
+VALUES (DEFAULT, :name, :birthday, :telephone, :classroom-id)
+
+-- :name get-student-serial :? :1
+-- :doc returns a the student serial id
+SELECT currval(pg_get_serial_sequence('students', 'id'));
 
 -- :name create-user! :! :n
 -- :doc creates a new user record
