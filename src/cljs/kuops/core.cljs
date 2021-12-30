@@ -18,7 +18,8 @@
                         :birthday nil
                         :telephone nil
                         :classroom-id nil
-                        :result nil}))
+                        :query-result nil
+                        :register-result nil}))
 (comment
   (defn handle-form-submit [e]
     (.. e preventDefault)
@@ -28,9 +29,12 @@
       (when chk))))
 
 (defn handle-form-clear [e]
-  (swap! state assoc :result nil))
+  (.. e preventDefault)
+  (swap! state assoc :register-result nil)
+  (swap! state assoc :query-result nil))
 
 (defn handle-form-register [e]
+  (.. e preventDefault)
   (let [{:keys [name birthday telephone classroom-id]} @state
         body {:name name
               :birthday birthday
@@ -40,19 +44,20 @@
               :method :post
               :content-type :json
               :accept :json}]
-    (tap> [:handle-form-register opts])
+    (tap> [:handle-form-register-req opts])
     (p/try
       (p/let [resp (fetch/request "/api/register" opts)
               body (js->clj (:body resp) :keywordize-keys true)
               result (:result body)]
-        (tap> [:handle-form-submit body])
+        (tap> [:handle-form-register body])
         (if (= "success" (first result))
-          (swap! state assoc :result "成功")
-          (swap! state assoc :result "失敗")))
+          (swap! state assoc :register-result "成功")
+          (swap! state assoc :register-result "失敗")))
       (p/catch :default e
         (prn {:url "/api/query-id" :opts opts :e e})))))
 
 (defn handle-form-submit [e]
+  (.. e preventDefault)
   (let [{:keys [name birthday telephone]} @state
         body {:name name
               :birthday birthday
@@ -61,15 +66,15 @@
               :method :post
               :content-type :json
               :accept :json}]
-    (tap> [:handle-form-submit opts])
+    (tap> [:handle-form-submit-req opts])
     (p/try
       (p/let [resp (fetch/request "/api/query-id" opts)
               body (js->clj (:body resp) :keywordize-keys true)
               result (:result body)]
         (tap> [:handle-form-submit body])
         (if (some? result)
-          (swap! state assoc :result result)
-          (swap! state assoc :result "不存在")))
+          (swap! state assoc :query-result result)
+          (swap! state assoc :query-result "不存在")))
 
       (p/catch :default e
         (prn {:url "/api/query-id" :opts opts :e e})))))
@@ -88,7 +93,7 @@
   (r/with-let [expanded? (r/atom false)]
     [:nav.navbar.is-info>div.container
      [:div.navbar-brand
-      [:a.navbar-item {:href "/" :style {:font-weight :bold}} "Student System"]
+      [:a.navbar-item {:style {:font-weight :bold}} "Student System"]
       [:span.navbar-burger.burger
        {:data-target :nav-menu
         :on-click #(swap! expanded? not)
@@ -97,13 +102,13 @@
      [:div#nav-menu.navbar-menu
       {:class (when @expanded? :is-active)}
       [:div.navbar-start
-       [nav-link "?#/query" "Query" :query]
-       [nav-link "?#/register" "Register" :register]]]]))
+       [nav-link "#/query" "Query" :query]
+       [nav-link "#/register" "Register" :register]]]]))
 
 (defn query-page []
-  (let [{:keys [name birthday telephone classroom-id result]} @state]
+  (let [{:keys [name birthday telephone classroom-id query-result]} @state]
     [:section.section>div.container>div.content
-     [:form {:id "form-id"}
+     [:form {:id "query-form-id"}
       [:div
        [:label "學生姓名"] [:input {:type "text"
                                 :placeholder "王大明"
@@ -134,12 +139,12 @@
                 :value "清除結果"
                 :on-click handle-form-clear}]]
       [:div
-       [:pre result]]]]))
+       [:pre query-result]]]]))
 
 (defn register-page []
-  (let [{:keys [name birthday telephone classroom-id result]} @state]
+  (let [{:keys [name birthday telephone classroom-id register-result]} @state]
     [:section.section>div.container>div.content
-     [:form {:id "form-id"}
+     [:form {:id "register-form-id"}
       [:div
        [:label "學生姓名"] [:input {:type "text"
                                 :placeholder "王大明"
@@ -177,7 +182,7 @@
                 :value "清除結果"
                 :on-click handle-form-clear}]]
       [:div
-       [:pre result]]]]))
+       [:pre register-result]]]]))
 
 (defn pages [k]
   (case k
