@@ -30,6 +30,28 @@
 (defn handle-form-clear [e]
   (swap! state assoc :result nil))
 
+(defn handle-form-register [e]
+  (let [{:keys [name birthday telephone classroom-id]} @state
+        body {:name name
+              :birthday birthday
+              :telephone telephone
+              :classroom-id classroom-id}
+        opts {:body body
+              :method :post
+              :content-type :json
+              :accept :json}]
+    (tap> [:handle-form-register opts])
+    (p/try
+      (p/let [resp (fetch/request "/api/register" opts)
+              body (js->clj (:body resp) :keywordize-keys true)
+              result (:result body)]
+        (tap> [:handle-form-submit body])
+        (if (= "success" (first result))
+          (swap! state assoc :result "成功")
+          (swap! state assoc :result "失敗")))
+      (p/catch :default e
+        (prn {:url "/api/query-id" :opts opts :e e})))))
+
 (defn handle-form-submit [e]
   (let [{:keys [name birthday telephone]} @state
         body {:name name
@@ -115,8 +137,47 @@
        [:pre result]]]]))
 
 (defn register-page []
-  [:section.section>div.container>div.content
-   "register"])
+  (let [{:keys [name birthday telephone classroom-id result]} @state]
+    [:section.section>div.container>div.content
+     [:form {:id "form-id"}
+      [:div
+       [:label "學生姓名"] [:input {:type "text"
+                                :placeholder "王大明"
+                                :value name
+                                :on-change (fn [e]
+                                             (let [d (-> e .-target .-value)]
+                                               (swap! state assoc :name d)))}]]
+      [:div
+       [:label "學生生日"] [:input {:type "date"
+                                :placeholder "2022-01-01"
+                                :value birthday
+                                :on-change (fn [e]
+                                             (let [d (-> e .-target .-value)]
+                                               (swap! state assoc :birthday d)))}]]
+      [:div
+       [:label "註冊電話"] [:input {:type "tel"
+                                :placeholder "0800-092-000"
+                                :value telephone
+                                :on-change (fn [e]
+                                             (let [d (-> e .-target .-value)]
+                                               (swap! state assoc :telephone d)))}]]
+      [:div
+       [:label "教室ID"] [:input {:type "text"
+                                :placeholder "AABBB"
+                                :value classroom-id
+                                :on-change (fn [e]
+                                             (let [d (-> e .-target .-value)]
+                                               (swap! state assoc :classroom-id d)))}]]
+      [:div
+       [:input {:type "submit"
+                :value "註冊"
+                :on-click handle-form-register}]]
+      [:div
+       [:input {:type "submit"
+                :value "清除結果"
+                :on-click handle-form-clear}]]
+      [:div
+       [:pre result]]]]))
 
 (def pages
   {:query #'query-page
